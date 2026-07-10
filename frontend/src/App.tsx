@@ -1556,16 +1556,97 @@ function App() {
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Rasm manzili (Image URL)</label>
+                <div className="form-group" style={{ marginBottom: '12px' }}>
+                  <label className="form-label">Rasm yuklash (Qurilmadan tanlash)</label>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="form-input" 
+                    style={{ padding: '6px 12px' }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          const img = new Image();
+                          img.src = reader.result as string;
+                          img.onload = () => {
+                            // Compress image using canvas
+                            const canvas = document.createElement('canvas');
+                            const MAX_WIDTH = 500;
+                            let width = img.width;
+                            let height = img.height;
+
+                            if (width > MAX_WIDTH) {
+                              height = Math.round((height * MAX_WIDTH) / width);
+                              width = MAX_WIDTH;
+                            }
+
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx?.drawImage(img, 0, 0, width, height);
+                            
+                            // Convert to compressed jpeg base64 (70% quality)
+                            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                            setNewProductForm(prev => ({ ...prev, image_url: compressedBase64 }));
+                          };
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '12px' }}>
+                  <label className="form-label">Yoki Rasm manzili (Image URL)</label>
                   <input 
                     type="text" 
                     className="form-input" 
                     value={newProductForm.image_url}
-                    onChange={(e) => setNewProductForm({...newProductForm, image_url: e.target.value})}
+                    onChange={(e) => setNewProductForm(prev => ({ ...prev, image_url: e.target.value }))}
                     placeholder="/images/shorva.png kabi..."
                   />
                 </div>
+
+                {newProductForm.image_url && (
+                  <div className="form-group" style={{ marginBottom: '12px' }}>
+                    <label className="form-label">Rasm ko'rinishi (Prevyu)</label>
+                    <div style={{ position: 'relative', width: '80px', height: '80px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-color, #ccc)' }}>
+                      <img 
+                        src={newProductForm.image_url} 
+                        alt="Preview" 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
+                        }}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setNewProductForm(prev => ({ ...prev, image_url: '' }))}
+                        style={{ 
+                          position: 'absolute', 
+                          top: '4px', 
+                          right: '4px', 
+                          background: 'rgba(0,0,0,0.7)', 
+                          color: '#fff', 
+                          border: 'none', 
+                          borderRadius: '50%', 
+                          width: '18px', 
+                          height: '18px', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          cursor: 'pointer',
+                          fontSize: '10px',
+                          lineHeight: 1
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="form-group flex-row" style={{ gap: '10px', marginTop: '10px' }}>
                   <input 
