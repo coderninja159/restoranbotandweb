@@ -185,54 +185,133 @@ const triggerMenu = async (ctx: MyContext) => {
 
 bot.hears('🍽 Menyu / Buyurtma', triggerMenu);
 
-// Category selection callback
-bot.action(/^cat_(\d+)$/, async (ctx) => {
-  const categoryId = parseInt(ctx.match[1], 10);
+// Helper function to send or edit a product message (pagination)
+async function sendOrEditProductMessage(
+  ctx: MyContext,
+  categoryId: number,
+  productIndex: number,
+  editMessage = false
+) {
   try {
-    await ctx.answerCbQuery().catch(console.error);
-
     const products = await getProductsByCategoryId(categoryId);
     const categories = await getCategories();
     const currentCategory = categories.find(c => c.id === categoryId);
     const categoryTitle = currentCategory ? currentCategory.name_uz : 'Menyu';
 
     if (products.length === 0) {
-      return ctx.reply(`"${categoryTitle}" kategoriyasida hozircha taomlar mavjud emas.`);
+      const emptyText = `"${categoryTitle}" kategoriyasida hozircha taomlar mavjud emas.`;
+      if (editMessage) {
+        await ctx.editMessageText(emptyText).catch(console.error);
+      } else {
+        await ctx.reply(emptyText);
+      }
+      return;
     }
 
-    await ctx.reply(`🍽 *${categoryTitle}* taomlari:`);
+    // Ensure index is within bounds (loop around)
+    const safeIndex = (productIndex + products.length) % products.length;
+    const prod = products[safeIndex];
 
-    for (const prod of products) {
-      const priceFormatted = new Intl.NumberFormat('uz-UZ').format(prod.price);
-      let detailsText = `🔸 *${prod.name_uz}*\n`;
-      detailsText += `💰 Narxi: *${priceFormatted} so'm*\n`;
-      detailsText += `⭐ Bahosi: ${prod.rating || '5.0'} (${prod.reviews_count || 0} sharhlar)\n`;
-      
-      if (prod.old_price) {
-        const oldPriceFormatted = new Intl.NumberFormat('uz-UZ').format(prod.old_price);
-        detailsText += `❌ Eski narxi: ~${oldPriceFormatted} so'm~\n`;
-      }
+    const priceFormatted = new Intl.NumberFormat('uz-UZ').format(prod.price);
+    let detailsText = `🍽 *${categoryTitle}* (${safeIndex + 1}/${products.length})\n\n`;
+    detailsText += `🔸 *${prod.name_uz}*\n`;
+    detailsText += `💰 Narxi: *${priceFormatted} so'm*`;
+    
+    if (prod.old_price) {
+      const oldPriceFormatted = new Intl.NumberFormat('uz-UZ').format(prod.old_price);
+      detailsText += ` (Eski: ~${oldPriceFormatted} so'm~)`;
+    }
+    detailsText += `\n⭐ Bahosi: ${prod.rating || '5.0'} (${prod.reviews_count || 0} sharhlar)\n`;
 
-      const inlineKeyboard = Markup.inlineKeyboard([
-        [
-          Markup.button.callback('➕ Savatga', `add_${prod.id}`),
-          Markup.button.callback('➖ Kamaytirish', `remove_${prod.id}`)
-        ]
+    // Build the inline keyboard buttons
+    const buttons = [
+      [
+        Markup.button.callback('➕ Savatga', `add_${prod.id}`),
+        Markup.button.callback('➖ Kamaytirish', `remove_${prod.id}`)
+      ]
+    ];
+
+    // If there is more than 1 product, add navigation buttons (<- and ->)
+    if (products.length > 1) {
+      const prevIndex = (safeIndex - 1 + products.length) % products.length;
+      const nextIndex = (safeIndex + 1) % products.length;
+      buttons.push([
+        Markup.button.callback('⬅️ Oldingi', `prodpage_${categoryId}_${prevIndex}`),
+        Markup.button.callback('➡️ Keyingi', `prodpage_${categoryId}_${nextIndex}`)
       ]);
+    }
 
-      const imagePath = getProductImagePath(prod.image_url);
-      if (imagePath) {
-        await ctx.replyWithPhoto({ source: imagePath }, {
-          caption: detailsText,
-          parse_mode: 'Markdown',
-          reply_markup: inlineKeyboard.reply_markup
-        });
-      } else {
-        await ctx.replyWithMarkdown(detailsText, inlineKeyboard);
+    const inlineKeyboard = Markup.inlineKeyboard(buttons);
+    const imagePath = getProductImagePath(prod.image_url);
+
+    if (editMessage) {
+      try {
+        const isPhotoMessage = ctx.callbackQuery && 'message' in ctx.callbackQuery && ctx.callbackQuery.message && 'photo' in ctx.callbackQuery.message;
+
+        if (imagePath && isPhotoMessage) {
+          // Edit existing photo message's media and caption
+          await ctx.editMessageMedia({
+            type: 'photo',
+            media: { source: imagePath },
+            caption: detailsText,
+            parse_mode: 'Markdown'
+          }, {
+            reply_markup: inlineKeyboard.reply_markup
+          });
+          return;
+        } else if (!imagePath && !isPhotoMessage) {
+          // Edit existing text message's text
+          await ctx.editMessageText(detailsText, {
+            parse_mode: 'Markdown',
+            reply_markup: inlineKeyboard.reply_markup
+          });
+          return;
+        }
+      } catch (err) {
+        console.warn('Failed to edit message in-place, falling back to delete and send:', err);
       }
+
+      // Fallback: Delete old message and send a new one
+      try {
+        await ctx.deleteMessage().catch(console.error);
+      } catch (e) {}
+    }
+
+    // Send new message
+    if (imagePath) {
+      await ctx.replyWithPhoto({ source: imagePath }, {
+        caption: detailsText,
+        parse_mode: 'Markdown',
+        reply_markup: inlineKeyboard.reply_markup
+      });
+    } else {
+      await ctx.replyWithMarkdown(detailsText, inlineKeyboard);
     }
   } catch (error) {
+    console.error('Error in sendOrEditProductMessage:', error);
+  }
+}
+
+// Category selection callback
+bot.action(/^cat_(\d+)$/, async (ctx) => {
+  const categoryId = parseInt(ctx.match[1], 10);
+  try {
+    await ctx.answerCbQuery().catch(console.error);
+    await sendOrEditProductMessage(ctx, categoryId, 0, false);
+  } catch (error) {
     console.error('Error fetching products for category action:', error);
+  }
+});
+
+// Product pagination callback
+bot.action(/^prodpage_(\d+)_(\d+)$/, async (ctx) => {
+  const categoryId = parseInt(ctx.match[1], 10);
+  const productIndex = parseInt(ctx.match[2], 10);
+  try {
+    await ctx.answerCbQuery().catch(console.error);
+    await sendOrEditProductMessage(ctx, categoryId, productIndex, true);
+  } catch (error) {
+    console.error('Error handling product page action:', error);
   }
 });
 
