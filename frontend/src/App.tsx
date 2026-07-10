@@ -100,7 +100,20 @@ interface Order {
 
 const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:5000'
-  : window.location.origin;
+  : 'https://dirty-bushes-glow.loca.lt';
+
+// Override global fetch to bypass localtunnel landing page
+const originalFetch = window.fetch;
+window.fetch = function (input, init) {
+  const url = String(input);
+  if (url.includes('loca.lt')) {
+    init = init || {};
+    const headers = new Headers(init.headers || {});
+    headers.set('Bypass-Tunnel-Reminder', 'true');
+    init.headers = headers;
+  }
+  return originalFetch(input, init);
+};
 
 const translations = {
   uz: {
