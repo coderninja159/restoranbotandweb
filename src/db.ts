@@ -27,7 +27,7 @@ if (!connectionString) {
 export const pool = new Pool({
   ...dbConfig,
   // Add defensive timeout settings
-  connectionTimeoutMillis: 5000,
+  connectionTimeoutMillis: 15000,
   idleTimeoutMillis: 30000,
   max: 10, // Maximum pool size
   ssl: {
