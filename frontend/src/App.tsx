@@ -98,9 +98,11 @@ interface Order {
   items: OrderItem[];
 }
 
-const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:5000'
-  : 'https://barokat-backend.loca.lt';
+const API_BASE = import.meta.env.VITE_API_BASE || (
+  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000'
+    : 'https://barokat-backend.loca.lt'
+);
 
 // Override global fetch to bypass localtunnel landing page
 const originalFetch = window.fetch;
