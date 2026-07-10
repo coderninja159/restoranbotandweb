@@ -100,7 +100,7 @@ interface Order {
 
 const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:5000'
-  : 'https://dirty-bushes-glow.loca.lt';
+  : 'https://barokat-backend.loca.lt';
 
 // Override global fetch to bypass localtunnel landing page
 const originalFetch = window.fetch;
