@@ -454,6 +454,10 @@ function App() {
   const [adminActiveTab, setAdminActiveTab] = useState<'orders' | 'products' | 'categories'>('orders');
   const [orderSubTab, setOrderSubTab] = useState<'all' | 'pending' | 'confirmed' | 'completed_cancelled'>('all');
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [ordersSearchQuery, setOrdersSearchQuery] = useState('');
+  const [ordersTypeFilter, setOrdersTypeFilter] = useState<'all' | 'delivery' | 'pickup' | 'table'>('all');
+  const [ordersSortBy, setOrdersSortBy] = useState<'newest' | 'oldest' | 'highest_price' | 'lowest_price'>('newest');
+  const [ordersDateFilter, setOrdersDateFilter] = useState<'all' | 'today' | 'yesterday'>('all');
   
   // Product Edit modal states
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -1394,13 +1398,56 @@ function App() {
 
         {/* Admin Orders Section */}
         {adminActiveTab === 'orders' && (() => {
-          const filteredOrders = adminOrders.filter(order => {
-            if (orderSubTab === 'all') return true;
-            if (orderSubTab === 'pending') return order.status === 'pending';
-            if (orderSubTab === 'confirmed') return order.status === 'confirmed';
-            if (orderSubTab === 'completed_cancelled') return order.status === 'completed' || order.status === 'cancelled';
-            return true;
-          });
+          const filteredOrders = adminOrders
+            .filter(order => {
+              if (orderSubTab === 'all') return true;
+              if (orderSubTab === 'pending') return order.status === 'pending';
+              if (orderSubTab === 'confirmed') return order.status === 'confirmed';
+              if (orderSubTab === 'completed_cancelled') return order.status === 'completed' || order.status === 'cancelled';
+              return true;
+            })
+            .filter(order => {
+              if (ordersTypeFilter === 'all') return true;
+              return order.order_type === ordersTypeFilter;
+            })
+            .filter(order => {
+              if (!ordersSearchQuery.trim()) return true;
+              const query = ordersSearchQuery.toLowerCase();
+              const matchesName = order.user_name?.toLowerCase().includes(query);
+              const matchesPhone = order.user_phone?.includes(query);
+              const matchesId = String(order.id) === query || `#${order.id}` === query;
+              const matchesFood = order.items.some(item => item.product_name?.toLowerCase().includes(query));
+              return matchesName || matchesPhone || matchesId || matchesFood;
+            })
+            .filter(order => {
+              if (ordersDateFilter === 'all') return true;
+              const orderDate = new Date(order.created_at);
+              const today = new Date();
+              if (ordersDateFilter === 'today') {
+                return orderDate.toDateString() === today.toDateString();
+              }
+              if (ordersDateFilter === 'yesterday') {
+                const yesterday = new Date();
+                yesterday.setDate(today.getDate() - 1);
+                return orderDate.toDateString() === yesterday.toDateString();
+              }
+              return true;
+            })
+            .sort((a, b) => {
+              if (ordersSortBy === 'newest') {
+                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+              }
+              if (ordersSortBy === 'oldest') {
+                return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+              }
+              if (ordersSortBy === 'highest_price') {
+                return Number(b.total_amount) - Number(a.total_amount);
+              }
+              if (ordersSortBy === 'lowest_price') {
+                return Number(a.total_amount) - Number(b.total_amount);
+              }
+              return 0;
+            });
 
           return (
             <div className="admin-orders-list">
@@ -1440,8 +1487,87 @@ function App() {
                 </button>
               </div>
 
+              {/* Filter Panel */}
+              <div className="orders-filter-panel glass-card" style={{ padding: '16px', marginBottom: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                  {/* Search */}
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '10px' }}>Qidiruv</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder="Mijoz, telefon, ID yoki taom..."
+                      value={ordersSearchQuery}
+                      onChange={(e) => setOrdersSearchQuery(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Order Type */}
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '10px' }}>Buyurtma turi</label>
+                    <select 
+                      className="form-input"
+                      value={ordersTypeFilter}
+                      onChange={(e) => setOrdersTypeFilter(e.target.value as any)}
+                    >
+                      <option value="all">Barcha turlar</option>
+                      <option value="delivery">🚚 Yetkazib berish</option>
+                      <option value="pickup">🛍 Olib ketish</option>
+                      <option value="table">🍽 Stolda</option>
+                    </select>
+                  </div>
+
+                  {/* Date Filter */}
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '10px' }}>Sana filtri</label>
+                    <select 
+                      className="form-input"
+                      value={ordersDateFilter}
+                      onChange={(e) => setOrdersDateFilter(e.target.value as any)}
+                    >
+                      <option value="all">Barcha vaqtlar</option>
+                      <option value="today">Bugun</option>
+                      <option value="yesterday">Kecha</option>
+                    </select>
+                  </div>
+
+                  {/* Sorting */}
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '10px' }}>Saralash</label>
+                    <select 
+                      className="form-input"
+                      value={ordersSortBy}
+                      onChange={(e) => setOrdersSortBy(e.target.value as any)}
+                    >
+                      <option value="newest">Yangi birinchi</option>
+                      <option value="oldest">Eski birinchi</option>
+                      <option value="highest_price">Qimmatroq birinchi</option>
+                      <option value="lowest_price">Arzonroq birinchi</option>
+                    </select>
+                  </div>
+                </div>
+                
+                {/* Reset button */}
+                {(ordersSearchQuery || ordersTypeFilter !== 'all' || ordersDateFilter !== 'all' || ordersSortBy !== 'newest') && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+                    <button 
+                      onClick={() => {
+                        setOrdersSearchQuery('');
+                        setOrdersTypeFilter('all');
+                        setOrdersDateFilter('all');
+                        setOrdersSortBy('newest');
+                      }}
+                      className="sub-tab-btn" 
+                      style={{ fontSize: '11px', padding: '6px 12px', background: 'transparent' }}
+                    >
+                      Filtrlarni tozalash 🔄
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {filteredOrders.length === 0 ? (
-                <p style={{ padding: '20px', textAlign: 'center' }}>Buyurtmalar mavjud emas.</p>
+                <p style={{ padding: '20px', textAlign: 'center' }}>Qidiruvga mos buyurtmalar mavjud emas.</p>
               ) : (
                 filteredOrders.map((order) => {
                   const orderDate = new Date(order.created_at).toLocaleString('uz-UZ');
