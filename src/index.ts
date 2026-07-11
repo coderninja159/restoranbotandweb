@@ -184,7 +184,7 @@ app.put('/api/admin/orders/:id/status', async (req, res) => {
 // 6. Admin Create Product
 app.post('/api/admin/products', async (req, res) => {
   try {
-    const { category_id, name_uz, price, old_price, rating, reviews_count, image_url, is_available } = req.body;
+    const { category_id, name_uz, price, old_price, image_url, is_available } = req.body;
     if (!category_id || !name_uz || !price) {
       return res.status(400).json({ error: 'Category ID, name, and price are required.' });
     }
@@ -193,8 +193,6 @@ app.post('/api/admin/products', async (req, res) => {
       name_uz,
       price: Number(price),
       old_price: old_price ? Number(old_price) : null,
-      rating: rating ? Number(rating) : 5.0,
-      reviews_count: reviews_count ? Number(reviews_count) : 0,
       image_url: image_url || null,
       is_available: is_available !== undefined ? Boolean(is_available) : true
     });
@@ -208,7 +206,7 @@ app.post('/api/admin/products', async (req, res) => {
 app.put('/api/admin/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { category_id, name_uz, price, old_price, rating, reviews_count, image_url, is_available } = req.body;
+    const { category_id, name_uz, price, old_price, image_url, is_available } = req.body;
     if (!category_id || !name_uz || !price) {
       return res.status(400).json({ error: 'Category ID, name, and price are required.' });
     }
@@ -217,8 +215,6 @@ app.put('/api/admin/products/:id', async (req, res) => {
       name_uz,
       price: Number(price),
       old_price: old_price ? Number(old_price) : null,
-      rating: rating ? Number(rating) : 5.0,
-      reviews_count: reviews_count ? Number(reviews_count) : 0,
       image_url: image_url || null,
       is_available: is_available !== undefined ? Boolean(is_available) : true
     });

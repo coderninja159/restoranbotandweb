@@ -35,8 +35,6 @@ CREATE TABLE products (
     name_uz VARCHAR(255) NOT NULL,
     price NUMERIC(10, 2) NOT NULL, -- UZS Prices
     old_price NUMERIC(10, 2) DEFAULT NULL, -- Old price for discounts
-    rating NUMERIC(3, 2) DEFAULT 5.00, -- Rating (e.g. 4.90)
-    reviews_count INTEGER DEFAULT 0, -- Reviews count
     image_url TEXT DEFAULT NULL,
     is_available BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
@@ -85,65 +83,64 @@ INSERT INTO categories (name_uz, slug) VALUES
 
 -- Insert Products with UZS prices
 -- 1. Birinchi taomlar (category_id = 1)
-INSERT INTO products (category_id, name_uz, price, old_price, rating, reviews_count, image_url) VALUES
-(1, 'Sho''rva', 22000, 30000, 4.80, 124, '/images/shorva.png'),
-(1, 'Mastava', 20000, 28000, 4.70, 98, '/images/shorva.png'),
-(1, 'Lagmon suyuq', 25000, 35000, 4.90, 245, '/images/shorva.png');
+INSERT INTO products (category_id, name_uz, price, old_price, image_url) VALUES
+(1, 'Sho''rva', 22000, 30000, '/images/shorva.png'),
+(1, 'Mastava', 20000, 28000, '/images/shorva.png'),
+(1, 'Lagmon suyuq', 25000, 35000, '/images/shorva.png');
 
 -- 2. Ikkinchi taomlar (category_id = 2)
-INSERT INTO products (category_id, name_uz, price, old_price, rating, reviews_count, image_url) VALUES
-(2, 'Manti (dona)', 6000, 8500, 4.90, 512, '/images/manti.png'),
-(2, 'Kozon kabob', 45000, 65000, 4.90, 634, '/images/plov.png'),
-(2, 'Tushonka', 40000, 55000, 4.60, 43, NULL),
-(2, 'Vaguri', 55000, 75000, 4.80, 76, NULL),
-(2, 'Tabaka 1 kg', 85000, 110000, 4.70, 55, NULL),
-(2, 'Osh + bedana tuxum', 30000, 42000, 4.95, 1412, '/images/plov.png');
+INSERT INTO products (category_id, name_uz, price, old_price, image_url) VALUES
+(2, 'Manti (dona)', 6000, 8500, '/images/manti.png'),
+(2, 'Kozon kabob', 45000, 65000, '/images/plov.png'),
+(2, 'Tushonka', 40000, 55000, NULL),
+(2, 'Vaguri', 55000, 75000, NULL),
+(2, 'Tabaka 1 kg', 85000, 110000, NULL),
+(2, 'Osh + bedana tuxum', 30000, 42000, '/images/plov.png');
 
 -- 3. Salatlar (category_id = 3)
-INSERT INTO products (category_id, name_uz, price, old_price, rating, reviews_count, image_url) VALUES
-(3, 'Baklajan xrustyashiy', 22000, 30000, 4.70, 118, NULL),
-(3, 'Achu-chuchuk', 12000, 18000, 4.80, 321, '/images/achichuk.png'),
-(3, 'Suzma', 10000, 14000, 4.50, 49, NULL),
-(3, 'Choban', 15000, 20000, 4.60, 64, NULL),
-(3, 'Svejiy', 12000, 17000, 4.60, 52, NULL),
-(3, 'Sezar', 28000, 38000, 4.85, 203, NULL),
-(3, 'Olivye', 20000, 27000, 4.65, 87, NULL),
-(3, 'Toshkent', 24000, 32000, 4.75, 94, NULL),
-(3, 'Vesenniy', 18000, 24000, 4.55, 38, NULL),
-(3, 'Fri', 15000, 20000, 4.70, 142, NULL),
-(3, 'Mujskoy kapris', 32000, 45000, 4.80, 116, NULL),
-(3, 'Solyonniy assorti', 25000, 34000, 4.60, 29, NULL),
-(3, 'Achik suzma', 10000, 13000, 4.40, 31, NULL),
-(3, 'Katik domashniy', 12000, 16000, 4.70, 72, NULL),
-(3, 'Kazi (dona)', 15000, 20000, 4.90, 284, NULL),
-(3, 'Til mol go''sht', 35000, 48000, 4.80, 93, NULL);
+INSERT INTO products (category_id, name_uz, price, old_price, image_url) VALUES
+(3, 'Baklajan xrustyashiy', 22000, 30000, NULL),
+(3, 'Achu-chuchuk', 12000, 18000, '/images/achichuk.png'),
+(3, 'Suzma', 10000, 14000, NULL),
+(3, 'Choban', 15000, 20000, NULL),
+(3, 'Svejiy', 12000, 17000, NULL),
+(3, 'Sezar', 28000, 38000, NULL),
+(3, 'Olivye', 20000, 27000, NULL),
+(3, 'Toshkent', 24000, 32000, NULL),
+(3, 'Vesenniy', 18000, 24000, NULL),
+(3, 'Fri', 15000, 20000, NULL),
+(3, 'Mujskoy kapris', 32000, 45000, NULL),
+(3, 'Solyonniy assorti', 25000, 34000, NULL),
+(3, 'Achik suzma', 10000, 13000, NULL),
+(3, 'Katik domashniy', 12000, 16000, NULL),
+(3, 'Kazi (dona)', 15000, 20000, NULL),
+(3, 'Til mol go''sht', 35000, 48000, NULL);
 
 -- 4. Somsa (category_id = 4)
-INSERT INTO products (category_id, name_uz, price, old_price, rating, reviews_count, image_url) VALUES
-(4, 'Go''sht somsa', 8000, 11000, 4.90, 822, '/images/somsa.png'),
-(4, 'Ko''k somsa', 7000, 9500, 4.70, 143, '/images/somsa.png'),
-(4, 'Ovoshnoy somsa', 6000, 8000, 4.65, 96, '/images/somsa.png');
+INSERT INTO products (category_id, name_uz, price, old_price, image_url) VALUES
+(4, 'Go''sht somsa', 8000, 11000, '/images/somsa.png'),
+(4, 'Ko''k somsa', 7000, 9500, '/images/somsa.png'),
+(4, 'Ovoshnoy somsa', 6000, 8000, '/images/somsa.png');
 
 -- 5. Goryachie zakuski (category_id = 5)
-INSERT INTO products (category_id, name_uz, price, old_price, rating, reviews_count, image_url) VALUES
-(5, 'Kartoshka fri', 15000, 20000, 4.75, 234, NULL),
-(5, 'Qaynatilgan guruch', 8000, 11000, 4.40, 56, NULL),
-(5, 'Kovurilgan chuchvara', 22000, 30000, 4.80, 187, NULL);
+INSERT INTO products (category_id, name_uz, price, old_price, image_url) VALUES
+(5, 'Kartoshka fri', 15000, 20000, NULL),
+(5, 'Qaynatilgan guruch', 8000, 11000, NULL),
+(5, 'Kovurilgan chuchvara', 22000, 30000, NULL);
 
 -- 6. Shashliklar (category_id = 6)
-INSERT INTO products (category_id, name_uz, price, old_price, rating, reviews_count, image_url) VALUES
-(6, 'Semechki shashlik', 18000, 24000, 4.80, 245, '/images/shashlik.png'),
-(6, 'Mol jaz shashlik', 20000, 27000, 4.85, 487, '/images/shashlik.png'),
-(6, 'Qo''y jaz shashlik', 22000, 30000, 4.90, 589, '/images/shashlik.png'),
-(6, 'Qiyma shashlik', 16000, 22000, 4.75, 310, '/images/shashlik.png'),
-(6, 'Tovug file shashlik', 17000, 23000, 4.70, 189, '/images/shashlik.png'),
-(6, 'Tovug ganot shashlik', 15000, 20000, 4.65, 122, '/images/shashlik.png'),
-(6, 'Ovoshnoy shashlik', 10000, 14000, 4.50, 78, '/images/shashlik.png'),
-(6, 'Gribnoy shashlik', 12000, 16000, 4.60, 69, '/images/shashlik.png'),
-(6, 'Napoleon shashlik', 24000, 32000, 4.80, 114, '/images/shashlik.png'),
-(6, 'Rulet shashlik', 22000, 30000, 4.75, 96, '/images/shashlik.png'),
-(6, 'Koreyka shashlik', 25000, 34000, 4.90, 204, '/images/shashlik.png'),
-(6, 'Jigar shashlik', 15000, 20000, 4.55, 83, '/images/shashlik.png'),
-(6, 'Tovug bedro shashlik', 17000, 23000, 4.70, 112, '/images/shashlik.png'),
-(6, 'Yangi kartoshka shashlik', 12000, 16000, 4.60, 71, '/images/shashlik.png');
-
+INSERT INTO products (category_id, name_uz, price, old_price, image_url) VALUES
+(6, 'Semechki shashlik', 18000, 24000, '/images/shashlik.png'),
+(6, 'Mol jaz shashlik', 20000, 27000, '/images/shashlik.png'),
+(6, 'Qo''y jaz shashlik', 22000, 30000, '/images/shashlik.png'),
+(6, 'Qiyma shashlik', 16000, 22000, '/images/shashlik.png'),
+(6, 'Tovug file shashlik', 17000, 23000, '/images/shashlik.png'),
+(6, 'Tovug ganot shashlik', 15000, 20000, '/images/shashlik.png'),
+(6, 'Ovoshnoy shashlik', 10000, 14000, '/images/shashlik.png'),
+(6, 'Gribnoy shashlik', 12000, 16000, '/images/shashlik.png'),
+(6, 'Napoleon shashlik', 24000, 32000, '/images/shashlik.png'),
+(6, 'Rulet shashlik', 22000, 30000, '/images/shashlik.png'),
+(6, 'Koreyka shashlik', 25000, 34000, '/images/shashlik.png'),
+(6, 'Jigar shashlik', 15000, 20000, '/images/shashlik.png'),
+(6, 'Tovug bedro shashlik', 17000, 23000, '/images/shashlik.png'),
+(6, 'Yangi kartoshka shashlik', 12000, 16000, '/images/shashlik.png');

@@ -20,7 +20,6 @@ import {
   Sun, 
   Moon, 
   Heart, 
-  Star, 
   LogOut, 
   Trash2, 
   Edit,
@@ -59,8 +58,6 @@ interface Product {
   name_uz: string;
   price: string | number;
   old_price: string | number | null;
-  rating: number;
-  reviews_count: number;
   image_url: string | null;
   is_available: boolean;
 }
@@ -464,8 +461,6 @@ function App() {
     category_id: 1,
     price: '',
     old_price: '',
-    rating: '5.0',
-    reviews_count: '0',
     image_url: '',
     is_available: true
   });
@@ -597,9 +592,7 @@ function App() {
         ...newProductForm,
         category_id: Number(newProductForm.category_id),
         price: Number(newProductForm.price),
-        old_price: newProductForm.old_price ? Number(newProductForm.old_price) : null,
-        rating: Number(newProductForm.rating),
-        reviews_count: Number(newProductForm.reviews_count)
+        old_price: newProductForm.old_price ? Number(newProductForm.old_price) : null
       };
 
       const res = await fetch(url, {
@@ -617,8 +610,6 @@ function App() {
           category_id: 1,
           price: '',
           old_price: '',
-          rating: '5.0',
-          reviews_count: '0',
           image_url: '',
           is_available: true
         });
@@ -652,8 +643,6 @@ function App() {
       category_id: prod.category_id,
       price: String(prod.price),
       old_price: prod.old_price ? String(prod.old_price) : '',
-      rating: String(prod.rating),
-      reviews_count: String(prod.reviews_count),
       image_url: prod.image_url || '',
       is_available: prod.is_available
     });
@@ -901,10 +890,6 @@ function App() {
                       </div>
 
                       <div className="uzum-card-info">
-                        <div className="uzum-rating-row">
-                          <Star size={13} fill="var(--uzum-amber)" stroke="none" />
-                          <span>{prod.rating || '5.0'} ({prod.reviews_count || 0})</span>
-                        </div>
                         <h3 className="uzum-card-title">{getProductName(prod.name_uz, lang)}</h3>
                         
                         <div className="installment-badge">
@@ -1148,10 +1133,6 @@ function App() {
                       </div>
 
                       <div className="uzum-card-info">
-                        <div className="uzum-rating-row">
-                          <Star size={13} fill="var(--uzum-amber)" stroke="none" />
-                          <span>{prod.rating || '5.0'} ({prod.reviews_count || 0})</span>
-                        </div>
                         <h3 className="uzum-card-title">{getProductName(prod.name_uz, lang)}</h3>
                         
                         <div className="installment-badge">
@@ -1424,8 +1405,6 @@ function App() {
                     category_id: 1,
                     price: '',
                     old_price: '',
-                    rating: '5.0',
-                    reviews_count: '0',
                     image_url: '',
                     is_available: true
                   });
@@ -1530,31 +1509,6 @@ function App() {
                   </div>
                 </div>
 
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label className="form-label">Bahosi (Rating)</label>
-                    <input 
-                      type="number" 
-                      step="0.1" 
-                      min="1" 
-                      max="5" 
-                      className="form-input" 
-                      required 
-                      value={newProductForm.rating}
-                      onChange={(e) => setNewProductForm({...newProductForm, rating: e.target.value})}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Sharhlar soni</label>
-                    <input 
-                      type="number" 
-                      className="form-input" 
-                      required 
-                      value={newProductForm.reviews_count}
-                      onChange={(e) => setNewProductForm({...newProductForm, reviews_count: e.target.value})}
-                    />
-                  </div>
-                </div>
 
                 <div className="form-group" style={{ marginBottom: '12px' }}>
                   <label className="form-label">Rasm yuklash (Qurilmadan tanlash)</label>

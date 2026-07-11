@@ -221,7 +221,7 @@ async function sendOrEditProductMessage(
       const oldPriceFormatted = new Intl.NumberFormat('uz-UZ').format(prod.old_price);
       detailsText += ` (Eski: ~${oldPriceFormatted} so'm~)`;
     }
-    detailsText += `\n⭐ Bahosi: ${prod.rating || '5.0'} (${prod.reviews_count || 0} sharhlar)\n`;
+    detailsText += `\n`;
 
     // Build the inline keyboard buttons
     const buttons = [
