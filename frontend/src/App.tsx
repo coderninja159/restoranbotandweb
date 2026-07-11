@@ -57,7 +57,7 @@ interface Product {
   category_id: number;
   name_uz: string;
   price: string | number;
-  old_price: string | number | null;
+  discount: number;
   image_url: string | null;
   is_available: boolean;
 }
@@ -460,7 +460,7 @@ function App() {
     name_uz: '',
     category_id: 1,
     price: '',
-    old_price: '',
+    discount: '0',
     image_url: '',
     is_available: true
   });
@@ -592,7 +592,7 @@ function App() {
         ...newProductForm,
         category_id: Number(newProductForm.category_id),
         price: Number(newProductForm.price),
-        old_price: newProductForm.old_price ? Number(newProductForm.old_price) : null
+        discount: Number(newProductForm.discount || 0)
       };
 
       const res = await fetch(url, {
@@ -609,7 +609,7 @@ function App() {
           name_uz: '',
           category_id: 1,
           price: '',
-          old_price: '',
+          discount: '0',
           image_url: '',
           is_available: true
         });
@@ -642,7 +642,7 @@ function App() {
       name_uz: prod.name_uz,
       category_id: prod.category_id,
       price: String(prod.price),
-      old_price: prod.old_price ? String(prod.old_price) : '',
+      discount: String(prod.discount || 0),
       image_url: prod.image_url || '',
       is_available: prod.is_available
     });
@@ -860,6 +860,7 @@ function App() {
               <div className="uzum-grid">
                 {filteredProducts.map((prod) => {
                   const qty = getProductQuantity(prod.id);
+                  const oldPrice = prod.discount > 0 ? Math.round(Number(prod.price) / (1 - prod.discount / 100)) : null;
                   return (
                     <div key={prod.id} className="uzum-card">
                       <div className="uzum-card-image-wrapper">
@@ -883,8 +884,8 @@ function App() {
                           <Heart fill={favorites.includes(prod.id) ? 'var(--uzum-purple)' : 'none'} size={18} />
                         </button>
 
-                        {prod.old_price && (
-                          <div className="discount-badge">Chegirma</div>
+                        {prod.discount > 0 && (
+                          <div className="discount-badge">-{prod.discount}% Chegirma</div>
                         )}
                       </div>
 
@@ -893,8 +894,8 @@ function App() {
 
                         <div className="uzum-price-row">
                           <div className="price-column">
-                            {prod.old_price && (
-                              <span className="old-price">{formatPrice(prod.old_price, lang)}</span>
+                            {oldPrice && (
+                              <span className="old-price">{formatPrice(oldPrice, lang)}</span>
                             )}
                             <span className="new-price">{formatPrice(prod.price, lang)}</span>
                           </div>
@@ -1102,6 +1103,7 @@ function App() {
               <div className="uzum-grid">
                 {favoriteProducts.map((prod) => {
                   const qty = getProductQuantity(prod.id);
+                  const oldPrice = prod.discount > 0 ? Math.round(Number(prod.price) / (1 - prod.discount / 100)) : null;
                   return (
                     <div key={prod.id} className="uzum-card">
                       <div className="uzum-card-image-wrapper">
@@ -1124,6 +1126,9 @@ function App() {
                         >
                           <Heart fill="var(--uzum-purple)" size={18} />
                         </button>
+                        {prod.discount > 0 && (
+                          <div className="discount-badge">-{prod.discount}% Chegirma</div>
+                        )}
                       </div>
 
                       <div className="uzum-card-info">
@@ -1131,8 +1136,8 @@ function App() {
 
                         <div className="uzum-price-row">
                           <div className="price-column">
-                            {prod.old_price && (
-                              <span className="old-price">{formatPrice(prod.old_price, lang)}</span>
+                            {oldPrice && (
+                              <span className="old-price">{formatPrice(oldPrice, lang)}</span>
                             )}
                             <span className="new-price">{formatPrice(prod.price, lang)}</span>
                           </div>
@@ -1394,7 +1399,7 @@ function App() {
                     name_uz: '',
                     category_id: 1,
                     price: '',
-                    old_price: '',
+                    discount: '0',
                     image_url: '',
                     is_available: true
                   });
@@ -1489,12 +1494,14 @@ function App() {
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Eski narxi (Majburiy emas)</label>
+                    <label className="form-label">Chegirma (%da, majburiy emas)</label>
                     <input 
                       type="number" 
+                      min="0"
+                      max="99"
                       className="form-input" 
-                      value={newProductForm.old_price}
-                      onChange={(e) => setNewProductForm({...newProductForm, old_price: e.target.value})}
+                      value={newProductForm.discount}
+                      onChange={(e) => setNewProductForm({...newProductForm, discount: e.target.value})}
                     />
                   </div>
                 </div>

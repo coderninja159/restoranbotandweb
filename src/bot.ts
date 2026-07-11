@@ -217,9 +217,10 @@ async function sendOrEditProductMessage(
     detailsText += `🔸 *${prod.name_uz}*\n`;
     detailsText += `💰 Narxi: *${priceFormatted} so'm*`;
     
-    if (prod.old_price) {
-      const oldPriceFormatted = new Intl.NumberFormat('uz-UZ').format(prod.old_price);
-      detailsText += ` (Eski: ~${oldPriceFormatted} so'm~)`;
+    if (prod.discount > 0) {
+      const oldPrice = Math.round(prod.price / (1 - prod.discount / 100));
+      const oldPriceFormatted = new Intl.NumberFormat('uz-UZ').format(oldPrice);
+      detailsText += ` (Eski: ~${oldPriceFormatted} so'm~ -${prod.discount}%)`;
     }
     detailsText += `\n`;
 

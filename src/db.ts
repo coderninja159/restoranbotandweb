@@ -52,7 +52,7 @@ export interface Product {
   category_id: number;
   name_uz: string;
   price: number;
-  old_price: number | null;
+  discount: number;
   image_url: string | null;
   is_available: boolean;
   created_at: Date;
@@ -113,7 +113,7 @@ export async function getCategories(): Promise<Category[]> {
  */
 export async function getProductsByCategoryId(categoryId: number, onlyAvailable = true): Promise<Product[]> {
   try {
-    let queryText = 'SELECT id, category_id, name_uz, price, old_price, image_url, is_available, created_at FROM products WHERE category_id = $1';
+    let queryText = 'SELECT id, category_id, name_uz, price, discount, image_url, is_available, created_at FROM products WHERE category_id = $1';
     const params: any[] = [categoryId];
 
     if (onlyAvailable) {
@@ -126,7 +126,7 @@ export async function getProductsByCategoryId(categoryId: number, onlyAvailable 
     return res.rows.map(row => ({
       ...row,
       price: Number(row.price),
-      old_price: row.old_price ? Number(row.old_price) : null
+      discount: Number(row.discount || 0)
     }));
   } catch (error) {
     console.error(`Error fetching products for category_id ${categoryId}:`, error);
@@ -139,7 +139,7 @@ export async function getProductsByCategoryId(categoryId: number, onlyAvailable 
  */
 export async function getAllProducts(onlyAvailable = true): Promise<Product[]> {
   try {
-    let queryText = 'SELECT id, category_id, name_uz, price, old_price, image_url, is_available, created_at FROM products';
+    let queryText = 'SELECT id, category_id, name_uz, price, discount, image_url, is_available, created_at FROM products';
     if (onlyAvailable) {
       queryText += ' WHERE is_available = TRUE';
     }
@@ -148,7 +148,7 @@ export async function getAllProducts(onlyAvailable = true): Promise<Product[]> {
     return res.rows.map(row => ({
       ...row,
       price: Number(row.price),
-      old_price: row.old_price ? Number(row.old_price) : null
+      discount: Number(row.discount || 0)
     }));
   } catch (error) {
     console.error('Error fetching all products:', error);
@@ -272,13 +272,13 @@ export async function createProduct(p: {
   category_id: number;
   name_uz: string;
   price: number;
-  old_price?: number | null;
+  discount?: number;
   image_url?: string | null;
   is_available?: boolean;
 }): Promise<Product> {
   try {
     const query = `
-      INSERT INTO products (category_id, name_uz, price, old_price, image_url, is_available)
+      INSERT INTO products (category_id, name_uz, price, discount, image_url, is_available)
       VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *;
     `;
@@ -286,14 +286,14 @@ export async function createProduct(p: {
       p.category_id,
       p.name_uz,
       p.price,
-      p.old_price || null,
+      p.discount || 0,
       p.image_url || null,
       p.is_available !== undefined ? p.is_available : true
     ]);
     return {
       ...res.rows[0],
       price: Number(res.rows[0].price),
-      old_price: res.rows[0].old_price ? Number(res.rows[0].old_price) : null
+      discount: Number(res.rows[0].discount || 0)
     };
   } catch (error) {
     console.error('Error creating product:', error);
@@ -308,14 +308,14 @@ export async function updateProduct(id: number, p: {
   category_id: number;
   name_uz: string;
   price: number;
-  old_price?: number | null;
+  discount?: number;
   image_url?: string | null;
   is_available?: boolean;
 }): Promise<Product> {
   try {
     const query = `
       UPDATE products
-      SET category_id = $1, name_uz = $2, price = $3, old_price = $4, image_url = $5, is_available = $6
+      SET category_id = $1, name_uz = $2, price = $3, discount = $4, image_url = $5, is_available = $6
       WHERE id = $7
       RETURNING *;
     `;
@@ -323,7 +323,7 @@ export async function updateProduct(id: number, p: {
       p.category_id,
       p.name_uz,
       p.price,
-      p.old_price || null,
+      p.discount || 0,
       p.image_url || null,
       p.is_available !== undefined ? p.is_available : true,
       id
@@ -331,7 +331,7 @@ export async function updateProduct(id: number, p: {
     return {
       ...res.rows[0],
       price: Number(res.rows[0].price),
-      old_price: res.rows[0].old_price ? Number(res.rows[0].old_price) : null
+      discount: Number(res.rows[0].discount || 0)
     };
   } catch (error) {
     console.error(`Error updating product ${id}:`, error);
