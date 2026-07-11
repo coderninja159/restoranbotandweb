@@ -12,8 +12,24 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Enable CORS and JSON parsing
+const webhookUrl = process.env.RENDER_EXTERNAL_URL || process.env.WEBHOOK_URL;
+const botToken = process.env.TELEGRAM_BOT_TOKEN;
+const webhookPath = botToken ? `/webhook/${botToken}` : '';
+
+// Enable CORS
 app.use(cors());
+
+// Health Check Endpoint (can be pinged to prevent sleep)
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Register Telegraf webhook middleware BEFORE express.json()
+if (webhookUrl && webhookPath) {
+  app.use(bot.webhookCallback(webhookPath));
+  console.log(`Registered Telegram webhook at path: ${webhookPath}`);
+}
+
 app.use(express.json());
 
 // Serve static files from the React app build directory
@@ -274,15 +290,22 @@ async function bootstrap() {
       console.log(`Express API Server is running on port ${PORT}`);
     });
 
-    // Launch Telegram Bot in background
-    console.log('Starting Restaurant Telegram Bot...');
-    bot.launch()
-      .then(() => {
-        console.log('Bot is successfully running and polling for updates.');
-      })
-      .catch((error) => {
-        console.error('Failed to launch Telegram Bot polling:', error);
-      });
+    // Launch Telegram Bot
+    if (webhookUrl && webhookPath) {
+      console.log('Setting up Telegram Bot Webhook...');
+      const fullWebhookUrl = `${webhookUrl}${webhookPath}`;
+      await bot.telegram.setWebhook(fullWebhookUrl);
+      console.log(`Bot webhook successfully set to: ${fullWebhookUrl}`);
+    } else {
+      console.log('Starting Restaurant Telegram Bot via Long Polling...');
+      bot.launch()
+        .then(() => {
+          console.log('Bot is successfully running and polling for updates.');
+        })
+        .catch((error) => {
+          console.error('Failed to launch Telegram Bot polling:', error);
+        });
+    }
   } catch (error) {
     console.error('Failed to launch application:', error);
     process.exit(1);
