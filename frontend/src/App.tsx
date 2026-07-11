@@ -451,7 +451,9 @@ function App() {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [adminOrders, setAdminOrders] = useState<Order[]>([]);
-  const [adminActiveTab, setAdminActiveTab] = useState<'orders' | 'products'>('orders');
+  const [adminActiveTab, setAdminActiveTab] = useState<'orders' | 'products' | 'categories'>('orders');
+  const [orderSubTab, setOrderSubTab] = useState<'all' | 'pending' | 'confirmed' | 'completed_cancelled'>('all');
+  const [newCategoryName, setNewCategoryName] = useState('');
   
   // Product Edit modal states
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -543,6 +545,24 @@ function App() {
     }
   }, [activeTab, userId]);
 
+  // Auto login admin if running inside Telegram WebApp
+  useEffect(() => {
+    if (isAdmin && !isAdminAuthenticated) {
+      const tg = (window as any).Telegram?.WebApp;
+      const tgUser = tg?.initDataUnsafe?.user;
+      if (tgUser?.id) {
+        fetch(`${API_BASE}/api/admin/verify-admin?telegram_id=${tgUser.id}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.isAdmin) {
+              setIsAdminAuthenticated(true);
+            }
+          })
+          .catch(err => console.error('Failed to verify admin via Telegram:', err));
+      }
+    }
+  }, [isAdmin, isAdminAuthenticated]);
+
   // Load Admin Data when authenticated
   useEffect(() => {
     if (isAdmin && isAdminAuthenticated) {
@@ -630,6 +650,44 @@ function App() {
       });
       if (res.ok) {
         loadMenuData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCreateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCategoryName.trim()) return;
+    try {
+      triggerHaptic('medium');
+      const res = await fetch(`${API_BASE}/api/admin/categories`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name_uz: newCategoryName.trim() })
+      });
+      if (res.ok) {
+        setNewCategoryName('');
+        loadMenuData();
+      } else {
+        alert('Kategoriyani saqlashda xatolik yuz berdi.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteCategory = async (categoryId: number) => {
+    if (!window.confirm('Diqqat! Ushbu kategoriyani o‘chirish undagi barcha mahsulotlarning o‘chib ketishiga olib keladi. Davom etasizmi?')) return;
+    try {
+      triggerHaptic('heavy');
+      const res = await fetch(`${API_BASE}/api/admin/categories/${categoryId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        loadMenuData();
+      } else {
+        alert('Kategoriyani o‘chirishda xatolik yuz berdi.');
       }
     } catch (err) {
       console.error(err);
@@ -1326,64 +1384,126 @@ function App() {
           >
             Taomlar CRUD
           </button>
+          <button 
+            className={`admin-nav-btn ${adminActiveTab === 'categories' ? 'active' : ''}`}
+            onClick={() => setAdminActiveTab('categories')}
+          >
+            Kategoriyalar CRUD
+          </button>
         </div>
 
         {/* Admin Orders Section */}
-        {adminActiveTab === 'orders' && (
-          <div className="admin-orders-list">
-            <h3>Buyurtmalar ro‘yxati</h3>
-            {adminOrders.length === 0 ? (
-              <p style={{ padding: '20px', textAlign: 'center' }}>Buyurtmalar mavjud emas.</p>
-            ) : (
-              adminOrders.map((order) => {
-                const orderDate = new Date(order.created_at).toLocaleString('uz-UZ');
-                return (
-                  <div key={order.id} className="admin-order-card glass-card">
-                    <div className="admin-order-header flex-between">
-                      <div>
-                        <h4>Buyurtma #{order.id}</h4>
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{orderDate}</span>
-                      </div>
-                      
-                      <div className="status-dropdown-wrapper">
-                        <select 
-                          value={order.status}
-                          onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
-                          className={`status-select status-${order.status}`}
-                        >
-                          <option value="pending">Kutilmoqda</option>
-                          <option value="confirmed">Tasdiqlandi</option>
-                          <option value="completed">Yakunlandi</option>
-                          <option value="cancelled">Bekor qilindi</option>
-                        </select>
-                      </div>
-                    </div>
+        {adminActiveTab === 'orders' && (() => {
+          const filteredOrders = adminOrders.filter(order => {
+            if (orderSubTab === 'all') return true;
+            if (orderSubTab === 'pending') return order.status === 'pending';
+            if (orderSubTab === 'confirmed') return order.status === 'confirmed';
+            if (orderSubTab === 'completed_cancelled') return order.status === 'completed' || order.status === 'cancelled';
+            return true;
+          });
 
-                    <div className="admin-order-body">
-                      <p>👤 <b>Mijoz:</b> {order.user_name} ({order.user_phone})</p>
-                      <p>🚚 <b>Turi:</b> {order.order_type === 'delivery' ? `Yetkazib berish (Manzil: ${order.address})` : order.order_type === 'table' ? `Stolda (Stol raqami: ${order.table_number})` : 'Olib ketish'}</p>
-                      
-                      <div className="order-items-table" style={{ marginTop: '8px' }}>
-                        <h5>Taomlar:</h5>
-                        <ul>
-                          {order.items.map(item => (
-                            <li key={item.id}>
-                              {item.product_name} - {item.quantity} dona x {formatPrice(item.price, 'uz')}
-                            </li>
-                          ))}
-                        </ul>
+          return (
+            <div className="admin-orders-list">
+              <div className="flex-between" style={{ marginBottom: '16px' }}>
+                <h3>Buyurtmalar ro‘yxati</h3>
+              </div>
+
+              {/* Order Status Sub-Tabs */}
+              <div className="order-sub-tabs flex-row" style={{ gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px' }}>
+                <button 
+                  className={`sub-tab-btn ${orderSubTab === 'all' ? 'active' : ''}`}
+                  onClick={() => setOrderSubTab('all')}
+                >
+                  Barchasi ({adminOrders.length})
+                </button>
+                <button 
+                  className={`sub-tab-btn ${orderSubTab === 'pending' ? 'active' : ''}`}
+                  onClick={() => setOrderSubTab('pending')}
+                  style={{ position: 'relative' }}
+                >
+                  Yangi ({adminOrders.filter(o => o.status === 'pending').length})
+                  {adminOrders.some(o => o.status === 'pending') && (
+                    <span className="pulse-dot"></span>
+                  )}
+                </button>
+                <button 
+                  className={`sub-tab-btn ${orderSubTab === 'confirmed' ? 'active' : ''}`}
+                  onClick={() => setOrderSubTab('confirmed')}
+                >
+                  Faol ({adminOrders.filter(o => o.status === 'confirmed').length})
+                </button>
+                <button 
+                  className={`sub-tab-btn ${orderSubTab === 'completed_cancelled' ? 'active' : ''}`}
+                  onClick={() => setOrderSubTab('completed_cancelled')}
+                >
+                  Tarix ({adminOrders.filter(o => o.status === 'completed' || o.status === 'cancelled').length})
+                </button>
+              </div>
+
+              {filteredOrders.length === 0 ? (
+                <p style={{ padding: '20px', textAlign: 'center' }}>Buyurtmalar mavjud emas.</p>
+              ) : (
+                filteredOrders.map((order) => {
+                  const orderDate = new Date(order.created_at).toLocaleString('uz-UZ');
+                  return (
+                    <div key={order.id} className="admin-order-card glass-card">
+                      <div className="admin-order-header flex-between">
+                        <div>
+                          <h4>Buyurtma #{order.id}</h4>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{orderDate}</span>
+                        </div>
+                        
+                        <div className="status-dropdown-wrapper">
+                          <select 
+                            value={order.status}
+                            onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
+                            className={`status-select status-${order.status}`}
+                          >
+                            <option value="pending">Kutilmoqda</option>
+                            <option value="confirmed">Tasdiqlandi</option>
+                            <option value="completed">Yakunlandi</option>
+                            <option value="cancelled">Bekor qilindi</option>
+                          </select>
+                        </div>
                       </div>
-                      
-                      <h4 style={{ marginTop: '8px', color: 'var(--accent-color)' }}>
-                        Jami: {formatPrice(order.total_amount, 'uz')}
-                      </h4>
+
+                      <div className="admin-order-body">
+                        <p>👤 <b>Mijoz:</b> {order.user_name} ({order.user_phone})</p>
+                        <div style={{ marginBottom: '8px' }}>
+                          <b>Turi:</b>{' '}
+                          {order.order_type === 'delivery' && (
+                            <span className="order-type-badge delivery">🚚 Yetkazib berish (Manzil: {order.address})</span>
+                          )}
+                          {order.order_type === 'pickup' && (
+                            <span className="order-type-badge pickup">🛍 Olib ketish (Self-pickup)</span>
+                          )}
+                          {order.order_type === 'table' && (
+                            <span className="order-type-badge table">🍽 Stolda (Stol №{order.table_number})</span>
+                          )}
+                        </div>
+                        
+                        <div className="order-items-table" style={{ marginTop: '8px' }}>
+                          <h5>Taomlar:</h5>
+                          <ul>
+                            {order.items.map(item => (
+                              <li key={item.id}>
+                                {item.product_name} - {item.quantity} dona x {formatPrice(item.price, 'uz')}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        
+                        <h4 style={{ marginTop: '8px', color: 'var(--accent-color)' }}>
+                          Jami: {formatPrice(order.total_amount, 'uz')}
+                        </h4>
+                      </div>
                     </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
+                  );
+                })
+              )}
+            </div>
+          );
+        })()}
 
         {/* Admin Products CRUD Section */}
         {adminActiveTab === 'products' && (
@@ -1397,7 +1517,7 @@ function App() {
                   setEditingProduct(null);
                   setNewProductForm({
                     name_uz: '',
-                    category_id: 1,
+                    category_id: categories[0]?.id || 1,
                     price: '',
                     discount: '0',
                     image_url: '',
@@ -1437,6 +1557,60 @@ function App() {
                             <Trash2 size={14} />
                           </button>
                         </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Admin Categories CRUD Section */}
+        {adminActiveTab === 'categories' && (
+          <div className="admin-categories-section">
+            <div className="glass-card" style={{ padding: '20px', marginBottom: '24px' }}>
+              <h3>Yangi kategoriya qo‘shish</h3>
+              <form onSubmit={handleCreateCategory} className="flex-row" style={{ gap: '12px', marginTop: '12px' }}>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  style={{ flexGrow: 1 }}
+                  placeholder="Kategoriya nomi (Masalan: Desertlar)"
+                  required
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                />
+                <button type="submit" className="glow-btn" style={{ padding: '12px 24px' }}>
+                  Qo‘shish
+                </button>
+              </form>
+            </div>
+
+            <div className="admin-products-table-wrapper glass-card">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Kategoriya ID</th>
+                    <th>Kategoriya nomi</th>
+                    <th>Slug</th>
+                    <th style={{ textAlign: 'right' }}>Amallar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {categories.map((cat) => (
+                    <tr key={cat.id}>
+                      <td>#{cat.id}</td>
+                      <td><b>{cat.name_uz}</b></td>
+                      <td><code>{cat.slug}</code></td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button 
+                          onClick={() => handleDeleteCategory(cat.id)} 
+                          className="table-action-btn delete flex-center"
+                          style={{ marginLeft: 'auto' }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </td>
                     </tr>
                   ))}

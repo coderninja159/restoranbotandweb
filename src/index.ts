@@ -4,7 +4,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { bot } from './bot.js';
-import { closePool, getCategories, getProductsByCategoryId, getAllProducts, createOrder, getAdminOrders, updateOrderStatus, createProduct, updateProduct, deleteProduct, getUserOrderHistory, getUser } from './db.js';
+import { closePool, getCategories, getProductsByCategoryId, getAllProducts, createOrder, getAdminOrders, updateOrderStatus, createProduct, updateProduct, deleteProduct, getUserOrderHistory, getUser, createCategory, deleteCategory } from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -230,6 +230,47 @@ app.delete('/api/admin/products/:id', async (req, res) => {
     const { id } = req.params;
     await deleteProduct(Number(id));
     res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 8.1 Admin Create Category
+app.post('/api/admin/categories', async (req, res) => {
+  try {
+    const { name_uz } = req.body;
+    if (!name_uz) {
+      return res.status(400).json({ error: 'Kategoriya nomi kiritilishi shart.' });
+    }
+    const category = await createCategory(name_uz);
+    res.status(201).json({ success: true, category });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 8.2 Admin Delete Category
+app.delete('/api/admin/categories/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await deleteCategory(Number(id));
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 8.3 Verify Telegram Admin
+app.get('/api/admin/verify-admin', async (req, res) => {
+  try {
+    const { telegram_id } = req.query;
+    if (!telegram_id) {
+      return res.json({ isAdmin: false });
+    }
+    const adminIdsStr = process.env.ADMIN_TELEGRAM_IDS || '';
+    const adminIds = adminIdsStr.split(',').map(id => id.trim());
+    const isAdmin = adminIds.includes(String(telegram_id));
+    res.json({ isAdmin });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

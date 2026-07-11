@@ -107,6 +107,32 @@ bot.start(async (ctx) => {
   }
 });
 
+// Admin Command - Opens Admin Panel for authorized admins
+bot.command('admin', async (ctx) => {
+  try {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+
+    const adminIdsStr = process.env.ADMIN_TELEGRAM_IDS || '';
+    const adminIds = adminIdsStr.split(',').map(id => id.trim());
+
+    if (!adminIds.includes(String(userId))) {
+      return ctx.reply("Kechirasiz, siz admin emassiz.");
+    }
+
+    const adminUrl = `${webAppUrl}/admin`;
+
+    await ctx.reply(
+      "Salom Admin! Quyidagi tugma orqali Admin Panelni to'g'ridan-to'g'ri Telegram ichida ochishingiz mumkin:",
+      Markup.inlineKeyboard([
+        [Markup.button.webApp('Admin Panel ⚙️', adminUrl)]
+      ])
+    );
+  } catch (error) {
+    console.error('Error in /admin command:', error);
+  }
+});
+
 // Help command or Ma'lumot button
 const sendInfoMessage = async (ctx: MyContext) => {
   const infoText = 

@@ -440,6 +440,52 @@ export async function getUser(id: number): Promise<{ id: number; name: string; p
   }
 }
 
+function slugify(text: string): string {
+  return text
+    .toString()
+    .toLowerCase()
+    .replace(/o['’`‘]/g, 'o')
+    .replace(/g['’`‘]/g, 'g')
+    .replace(/s['’`‘]h/g, 'sh')
+    .replace(/c['’`‘]h/g, 'ch')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9\-]/g, '')
+    .replace(/\-\-+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
+}
+
+/**
+ * Create a new category
+ */
+export async function createCategory(name_uz: string): Promise<Category> {
+  try {
+    const slug = slugify(name_uz);
+    const res = await pool.query<Category>(
+      'INSERT INTO categories (name_uz, slug) VALUES ($1, $2) RETURNING *;',
+      [name_uz, slug]
+    );
+    return res.rows[0];
+  } catch (error) {
+    console.error('Error creating category:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a category
+ */
+export async function deleteCategory(id: number): Promise<boolean> {
+  try {
+    await pool.query('DELETE FROM categories WHERE id = $1;', [id]);
+    return true;
+  } catch (error) {
+    console.error(`Error deleting category ${id}:`, error);
+    throw error;
+  }
+}
+
 /**
  * Gracefully close the database pool connection.
  */
