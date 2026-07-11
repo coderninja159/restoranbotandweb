@@ -860,7 +860,6 @@ function App() {
               <div className="uzum-grid">
                 {filteredProducts.map((prod) => {
                   const qty = getProductQuantity(prod.id);
-                  const monthlyInstallment = Math.round(Number(prod.price) / 12);
                   return (
                     <div key={prod.id} className="uzum-card">
                       <div className="uzum-card-image-wrapper">
@@ -891,10 +890,6 @@ function App() {
 
                       <div className="uzum-card-info">
                         <h3 className="uzum-card-title">{getProductName(prod.name_uz, lang)}</h3>
-                        
-                        <div className="installment-badge">
-                          {formatPrice(monthlyInstallment, lang)} / oyiga
-                        </div>
 
                         <div className="uzum-price-row">
                           <div className="price-column">
@@ -1107,7 +1102,6 @@ function App() {
               <div className="uzum-grid">
                 {favoriteProducts.map((prod) => {
                   const qty = getProductQuantity(prod.id);
-                  const monthlyInstallment = Math.round(Number(prod.price) / 12);
                   return (
                     <div key={prod.id} className="uzum-card">
                       <div className="uzum-card-image-wrapper">
@@ -1134,10 +1128,6 @@ function App() {
 
                       <div className="uzum-card-info">
                         <h3 className="uzum-card-title">{getProductName(prod.name_uz, lang)}</h3>
-                        
-                        <div className="installment-badge">
-                          {formatPrice(monthlyInstallment, lang)} / oyiga
-                        </div>
 
                         <div className="uzum-price-row">
                           <div className="price-column">
