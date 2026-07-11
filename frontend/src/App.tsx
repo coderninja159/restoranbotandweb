@@ -451,7 +451,7 @@ function App() {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [adminOrders, setAdminOrders] = useState<Order[]>([]);
-  const [adminActiveTab, setAdminActiveTab] = useState<'orders' | 'products' | 'categories'>('orders');
+  const [adminActiveTab, setAdminActiveTab] = useState<'orders' | 'products' | 'categories' | 'stats'>('orders');
   const [orderSubTab, setOrderSubTab] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled'>('all');
   const [newCategoryName, setNewCategoryName] = useState('');
   const [ordersSearchQuery, setOrdersSearchQuery] = useState('');
@@ -470,6 +470,91 @@ function App() {
     image_url: '',
     is_available: true
   });
+
+  // Calculate Rich Stats using useMemo
+  const statsData = useMemo(() => {
+    const completedOrders = adminOrders.filter(o => o.status === 'completed');
+    
+    // 1. Revenue & Average Order Value
+    const totalRevenue = completedOrders.reduce((sum, o) => sum + Number(o.total_amount), 0);
+    const totalOrdersCount = adminOrders.length;
+    const completedOrdersCount = completedOrders.length;
+    const pendingOrdersCount = adminOrders.filter(o => o.status === 'pending').length;
+    const confirmedOrdersCount = adminOrders.filter(o => o.status === 'confirmed').length;
+    const cancelledOrdersCount = adminOrders.filter(o => o.status === 'cancelled').length;
+    
+    const averageOrderValue = completedOrdersCount > 0 ? totalRevenue / completedOrdersCount : 0;
+    
+    // 2. Order Type Distribution
+    const deliveryOrders = adminOrders.filter(o => o.order_type === 'delivery');
+    const pickupOrders = adminOrders.filter(o => o.order_type === 'pickup');
+    const tableOrders = adminOrders.filter(o => o.order_type === 'table');
+    
+    const deliveryRevenue = deliveryOrders.filter(o => o.status === 'completed').reduce((sum, o) => sum + Number(o.total_amount), 0);
+    const pickupRevenue = pickupOrders.filter(o => o.status === 'completed').reduce((sum, o) => sum + Number(o.total_amount), 0);
+    const tableRevenue = tableOrders.filter(o => o.status === 'completed').reduce((sum, o) => sum + Number(o.total_amount), 0);
+
+    // 3. Top Foods
+    const foodSales: Record<string, { qty: number; revenue: number }> = {};
+    completedOrders.forEach(order => {
+      order.items.forEach(item => {
+        const key = item.product_name || 'Noma‘lum taom';
+        if (!foodSales[key]) {
+          foodSales[key] = { qty: 0, revenue: 0 };
+        }
+        foodSales[key].qty += Number(item.quantity);
+        foodSales[key].revenue += Number(item.price) * Number(item.quantity);
+      });
+    });
+    
+    const topFoods = Object.entries(foodSales)
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.qty - a.qty)
+      .slice(0, 5);
+
+    // 4. Category distribution
+    const categorySales: Record<string, { qty: number; revenue: number }> = {};
+    completedOrders.forEach(order => {
+      order.items.forEach(item => {
+        const prod = products.find(p => p.name_uz === item.product_name);
+        const catId = prod?.category_id;
+        const catName = categories.find(c => c.id === catId)?.name_uz || 'Noma‘lum';
+        
+        if (!categorySales[catName]) {
+          categorySales[catName] = { qty: 0, revenue: 0 };
+        }
+        categorySales[catName].qty += Number(item.quantity);
+        categorySales[catName].revenue += Number(item.price) * Number(item.quantity);
+      });
+    });
+
+    const topCategories = Object.entries(categorySales)
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.revenue - a.revenue);
+
+    // 5. Unique customers
+    const uniqueUsers = new Set(adminOrders.map(o => o.user_id));
+    const uniqueCustomersCount = uniqueUsers.size;
+
+    return {
+      totalRevenue,
+      totalOrdersCount,
+      completedOrdersCount,
+      pendingOrdersCount,
+      confirmedOrdersCount,
+      cancelledOrdersCount,
+      averageOrderValue,
+      deliveryOrdersCount: deliveryOrders.length,
+      pickupOrdersCount: pickupOrders.length,
+      tableOrdersCount: tableOrders.length,
+      deliveryRevenue,
+      pickupRevenue,
+      tableRevenue,
+      topFoods,
+      topCategories,
+      uniqueCustomersCount
+    };
+  }, [adminOrders, products, categories]);
 
   // Watch for Admin hash trigger
   useEffect(() => {
@@ -1394,6 +1479,12 @@ function App() {
           >
             Kategoriyalar CRUD
           </button>
+          <button 
+            className={`admin-nav-btn ${adminActiveTab === 'stats' ? 'active' : ''}`}
+            onClick={() => setAdminActiveTab('stats')}
+          >
+            Statistika 📊
+          </button>
         </div>
 
         {/* Admin Orders Section */}
@@ -1745,6 +1836,145 @@ function App() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Admin Statistika Section */}
+        {adminActiveTab === 'stats' && (
+          <div className="admin-stats-section" style={{ animation: 'fadeIn 0.3s ease' }}>
+            <h3 style={{ marginBottom: '20px' }}>Tahlillar va Statistika 📊</h3>
+            
+            {/* Top Grid Metrics */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+              <div className="glass-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>💰 Jami Tushum (Yetkazilgan)</span>
+                <h2 style={{ color: '#2ecc71', margin: 0 }}>{formatPrice(statsData.totalRevenue, 'uz')}</h2>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  AOV: <b>{formatPrice(statsData.averageOrderValue, 'uz')}</b>
+                </span>
+              </div>
+              
+              <div className="glass-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>📦 Buyurtmalar Soni</span>
+                <h2 style={{ margin: 0 }}>{statsData.totalOrdersCount} ta</h2>
+                <div className="flex-row" style={{ gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                  <span className="order-type-badge pending" style={{ fontSize: '9px', padding: '2px 6px' }}>Kutilmoqda: {statsData.pendingOrdersCount}</span>
+                  <span className="order-type-badge confirmed" style={{ fontSize: '9px', padding: '2px 6px' }}>Faol: {statsData.confirmedOrdersCount}</span>
+                  <span className="order-type-badge Completed" style={{ fontSize: '9px', padding: '2px 6px', background: 'rgba(46, 204, 113, 0.2)', color: '#2ecc71' }}>Yakunlangan: {statsData.completedOrdersCount}</span>
+                </div>
+              </div>
+
+              <div className="glass-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>👥 Noyob Mijozlar</span>
+                <h2 style={{ margin: 0, color: 'var(--accent-color)' }}>{statsData.uniqueCustomersCount} ta</h2>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Mijozlar bazasi faolligi</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+              {/* Order Types Chart / Progress bars */}
+              <div className="glass-card" style={{ padding: '20px' }}>
+                <h4 style={{ marginBottom: '16px' }}>Buyurtma Turlari Ta'siri</h4>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {/* Delivery */}
+                  <div>
+                    <div className="flex-between" style={{ marginBottom: '6px', fontSize: '13px' }}>
+                      <span>🚚 Yetkazib berish ({statsData.deliveryOrdersCount} ta)</span>
+                      <b>{formatPrice(statsData.deliveryRevenue, 'uz')}</b>
+                    </div>
+                    <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div style={{ 
+                        width: statsData.totalRevenue > 0 ? `${(statsData.deliveryRevenue / statsData.totalRevenue) * 100}%` : '0%', 
+                        height: '100%', 
+                        background: '#9b59b6', 
+                        borderRadius: '4px' 
+                      }}></div>
+                    </div>
+                  </div>
+
+                  {/* Pickup */}
+                  <div>
+                    <div className="flex-between" style={{ marginBottom: '6px', fontSize: '13px' }}>
+                      <span>🛍 Olib ketish ({statsData.pickupOrdersCount} ta)</span>
+                      <b>{formatPrice(statsData.pickupRevenue, 'uz')}</b>
+                    </div>
+                    <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div style={{ 
+                        width: statsData.totalRevenue > 0 ? `${(statsData.pickupRevenue / statsData.totalRevenue) * 100}%` : '0%', 
+                        height: '100%', 
+                        background: '#3498db', 
+                        borderRadius: '4px' 
+                      }}></div>
+                    </div>
+                  </div>
+
+                  {/* Table service */}
+                  <div>
+                    <div className="flex-between" style={{ marginBottom: '6px', fontSize: '13px' }}>
+                      <span>🍽 Stol xizmati ({statsData.tableOrdersCount} ta)</span>
+                      <b>{formatPrice(statsData.tableRevenue, 'uz')}</b>
+                    </div>
+                    <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div style={{ 
+                        width: statsData.totalRevenue > 0 ? `${(statsData.tableRevenue / statsData.totalRevenue) * 100}%` : '0%', 
+                        height: '100%', 
+                        background: '#f1c40f', 
+                        borderRadius: '4px' 
+                      }}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Popular Categories */}
+              <div className="glass-card" style={{ padding: '20px' }}>
+                <h4 style={{ marginBottom: '16px' }}>Eng Mashhur Kategoriyalar (Daromad)</h4>
+                {statsData.topCategories.length === 0 ? (
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '20px' }}>Mavjud emas</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {statsData.topCategories.map((cat, idx) => (
+                      <div key={idx} className="flex-between" style={{ fontSize: '13px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '8px' }}>
+                        <span><b>{idx + 1}.</b> {cat.name} ({cat.qty} dona)</span>
+                        <span style={{ color: 'var(--accent-color)', fontWeight: 'bold' }}>{formatPrice(cat.revenue, 'uz')}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Top Selling Foods List */}
+            <div className="glass-card" style={{ padding: '20px', marginBottom: '24px' }}>
+              <h4 style={{ marginBottom: '16px' }}>🔥 Eng Ko‘p Sotilgan Taomlar (Top 5)</h4>
+              {statsData.topFoods.length === 0 ? (
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', padding: '20px' }}>Ma'lumotlar mavjud emas.</p>
+              ) : (
+                <div className="admin-products-table-wrapper" style={{ boxShadow: 'none', background: 'transparent' }}>
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Reyting</th>
+                        <th>Taom nomi</th>
+                        <th>Sotilgan dona</th>
+                        <th>Jami tushum</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {statsData.topFoods.map((food, idx) => (
+                        <tr key={idx}>
+                          <td><b>#{idx + 1}</b></td>
+                          <td><b>{food.name}</b></td>
+                          <td><code>{food.qty} dona</code></td>
+                          <td style={{ color: '#2ecc71', fontWeight: 'bold' }}>{formatPrice(food.revenue, 'uz')}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
