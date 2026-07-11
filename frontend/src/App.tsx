@@ -452,7 +452,7 @@ function App() {
   const [adminPassword, setAdminPassword] = useState('');
   const [adminOrders, setAdminOrders] = useState<Order[]>([]);
   const [adminActiveTab, setAdminActiveTab] = useState<'orders' | 'products' | 'categories'>('orders');
-  const [orderSubTab, setOrderSubTab] = useState<'all' | 'pending' | 'confirmed' | 'completed_cancelled'>('all');
+  const [orderSubTab, setOrderSubTab] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled'>('all');
   const [newCategoryName, setNewCategoryName] = useState('');
   const [ordersSearchQuery, setOrdersSearchQuery] = useState('');
   const [ordersTypeFilter, setOrdersTypeFilter] = useState<'all' | 'delivery' | 'pickup' | 'table'>('all');
@@ -1401,10 +1401,7 @@ function App() {
           const filteredOrders = adminOrders
             .filter(order => {
               if (orderSubTab === 'all') return true;
-              if (orderSubTab === 'pending') return order.status === 'pending';
-              if (orderSubTab === 'confirmed') return order.status === 'confirmed';
-              if (orderSubTab === 'completed_cancelled') return order.status === 'completed' || order.status === 'cancelled';
-              return true;
+              return order.status === orderSubTab;
             })
             .filter(order => {
               if (ordersTypeFilter === 'all') return true;
@@ -1468,7 +1465,7 @@ function App() {
                   onClick={() => setOrderSubTab('pending')}
                   style={{ position: 'relative' }}
                 >
-                  Yangi ({adminOrders.filter(o => o.status === 'pending').length})
+                  Kutilmoqda ({adminOrders.filter(o => o.status === 'pending').length})
                   {adminOrders.some(o => o.status === 'pending') && (
                     <span className="pulse-dot"></span>
                   )}
@@ -1477,13 +1474,19 @@ function App() {
                   className={`sub-tab-btn ${orderSubTab === 'confirmed' ? 'active' : ''}`}
                   onClick={() => setOrderSubTab('confirmed')}
                 >
-                  Faol ({adminOrders.filter(o => o.status === 'confirmed').length})
+                  Tasdiqlandi ({adminOrders.filter(o => o.status === 'confirmed').length})
                 </button>
                 <button 
-                  className={`sub-tab-btn ${orderSubTab === 'completed_cancelled' ? 'active' : ''}`}
-                  onClick={() => setOrderSubTab('completed_cancelled')}
+                  className={`sub-tab-btn ${orderSubTab === 'completed' ? 'active' : ''}`}
+                  onClick={() => setOrderSubTab('completed')}
                 >
-                  Tarix ({adminOrders.filter(o => o.status === 'completed' || o.status === 'cancelled').length})
+                  Yakunlandi ({adminOrders.filter(o => o.status === 'completed').length})
+                </button>
+                <button 
+                  className={`sub-tab-btn ${orderSubTab === 'cancelled' ? 'active' : ''}`}
+                  onClick={() => setOrderSubTab('cancelled')}
+                >
+                  Bekor qilindi ({adminOrders.filter(o => o.status === 'cancelled').length})
                 </button>
               </div>
 
